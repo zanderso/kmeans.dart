@@ -1,0 +1,23 @@
+# Copyright 2014 The Flutter Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+name: Tests
+on: [pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container:
+      image:  google/dart:latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: pub get
+      - name: Format
+        run: dartfmt --set-exit-if-changed .
+      - name: Analyze
+        run: dartanalyzer .
+      - name: Test
+        run: pub run test
