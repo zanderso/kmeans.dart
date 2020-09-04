@@ -1,3 +1,7 @@
+## 0.2.1
+
+- Updates to `README.md`.
+
 ## 0.2.0
 
 - Renames `compute` and `computeBest` to `fit` and `bestFit`.
