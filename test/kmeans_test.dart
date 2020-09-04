@@ -2,10 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'dart:io';
 import 'dart:math';
 
 import 'package:kmeans/kmeans.dart';
 import 'package:test/test.dart';
+
+import 'utils/arff.dart';
 
 void main() {
   test('KMeans sanity check', () {
@@ -18,8 +21,9 @@ void main() {
       <double>[2.1],
     ];
     final KMeans kmeans = KMeans(points);
-    final Clusters k = kmeans.compute(2);
+    final Clusters k = kmeans.fit(2);
 
+    expect(k.k, equals(2));
     expect(k.means.length, equals(2));
     expect(k.means[0] != k.means[1], isTrue);
     expect(k.clusters[0] == k.clusters[1], isTrue);
@@ -30,6 +34,20 @@ void main() {
 
     expect(k.clusterPoints[0].length, equals(3));
     expect(k.clusterPoints[1].length, equals(3));
+
+    expect(
+        (k.inertia - 0.04).abs(), lessThanOrEqualTo(KMeans.defaultPrecision));
+
+    expect(
+        k.predict(<List<double>>[
+          <double>[k.means[0][0] + 0.05]
+        ]),
+        equals(<int>[0]));
+    expect(
+        k.predict(<List<double>>[
+          <double>[k.means[1][0] + 0.05]
+        ]),
+        equals(<int>[1]));
   });
 
   test('Best KMeans sanity check', () {
@@ -45,8 +63,9 @@ void main() {
       <double>[3.1],
     ];
     final KMeans kmeans = KMeans(points);
-    final Clusters k = kmeans.computeBest();
+    final Clusters k = kmeans.bestFit();
 
+    expect(k.k, equals(3));
     expect(k.means.length, equals(3));
     expect(k.means[0] != k.means[1], isTrue);
     expect(k.means[1] != k.means[2], isTrue);
@@ -61,6 +80,18 @@ void main() {
     expect(k.clusterPoints[0].length, equals(3));
     expect(k.clusterPoints[1].length, equals(3));
     expect(k.clusterPoints[2].length, equals(3));
+
+    expect(
+        (k.inertia - 0.06).abs(), lessThanOrEqualTo(KMeans.defaultPrecision));
+
+    expect(
+      k.predict(<List<double>>[
+        <double>[k.means[0][0] + 0.05],
+        <double>[k.means[1][0] + 0.05],
+        <double>[k.means[2][0] + 0.05],
+      ]),
+      equals(<int>[0, 1, 2]),
+    );
   });
 
   List<List<double>> initializePoints(
@@ -124,13 +155,14 @@ void main() {
       );
 
       final KMeans kmeans = KMeans(points);
-      final Clusters k = kmeans.computeBest(
+      final Clusters k = kmeans.bestFit(
         minK: minK,
         maxK: maxK,
       );
 
       // We found the right k.
       expect(k.k, equals(clusters));
+      expect(k.means.length, equals(clusters));
     }
   });
 
@@ -151,9 +183,111 @@ void main() {
 
       final KMeans kmeans = KMeans(points);
       for (int i = minK; i <= maxK; i++) {
-        final Clusters c = kmeans.compute(i);
+        final Clusters c = kmeans.fit(i);
         expect((c.silhouette - c.exactSilhouette).abs(), lessThan(0.02));
       }
     }
+  });
+
+  test2DArff(
+    fileName: '2d-10c',
+    k: 9,
+    minK: 2,
+    maxK: 15,
+    trials: 3,
+    errors: 5,
+  );
+
+  test2DArff(
+    fileName: '2d-20c-no0',
+    k: 20,
+    minK: 18,
+    maxK: 21,
+    trials: 100,
+    errors: 50,
+  );
+
+  test2DArff(
+    fileName: '2d-4c-no9',
+    k: 4,
+    minK: 2,
+    maxK: 6,
+    errors: 60,
+    trials: 1,
+  );
+}
+
+void test2DArff(
+    {String fileName, int k, int errors, int minK, int maxK, int trials}) {
+  test('$fileName with labels', () async {
+    final ArffReader reader =
+        ArffReader.fromFile(File('test/data/$fileName.arff'));
+    await reader.parse();
+
+    // The third dimension is the label. Exagerate it to test that bestFit is
+    // finding the right number of clusters and getting all the right points
+    // into those clusters.
+    for (int i = 0; i < reader.data.length; i++) {
+      reader.data[i][2] *= 1e6;
+    }
+
+    final KMeans kmeans = KMeans(reader.data, ignoredDims: <int>[]);
+    final Clusters clusters = kmeans.bestFit(
+      minK: minK,
+      maxK: maxK,
+      trialsPerK: trials,
+    );
+
+    expect(clusters.k, equals(k));
+
+    // The third dimension of each point gives the actual cluster. Check that
+    // all points we clustered together should really be together.
+    for (int i = 0; i < clusters.clusterPoints.length; i++) {
+      final double c = clusters.clusterPoints[i][0][2];
+      for (int j = 0; j < clusters.clusterPoints[i].length; j++) {
+        expect(clusters.clusterPoints[i][j][2], equals(c));
+      }
+    }
+  });
+
+  test('$fileName without labels', () async {
+    final ArffReader reader =
+        ArffReader.fromFile(File('test/data/$fileName.arff'));
+    await reader.parse();
+
+    // Ignore the third dimension of each point. It is the label, which we
+    // leave off now, and then check later.
+    final KMeans kmeans = KMeans(reader.data, ignoredDims: <int>[2]);
+    final Clusters clusters = kmeans.bestFit(
+      minK: minK,
+      maxK: maxK,
+      trialsPerK: trials,
+    );
+
+    expect(clusters.k, equals(k));
+
+    // May get a few wrong.
+    int errors = 0;
+    for (int i = 0; i < clusters.clusterPoints.length; i++) {
+      final List<int> counts = List<int>.filled(clusters.k + 1, 0);
+      for (int j = 0; j < clusters.clusterPoints[i].length; j++) {
+        counts[clusters.clusterPoints[i][j][2].toInt()]++;
+      }
+      int maxIdx = -1;
+      int maxCount = 0;
+      for (int j = 0; j < clusters.k + 1; j++) {
+        if (counts[j] > maxCount) {
+          maxCount = counts[j];
+          maxIdx = j;
+        }
+      }
+      // If a point isn't in the maxIdx cluster, consider it an error.
+      for (int j = 0; j < clusters.clusterPoints[i].length; j++) {
+        if (clusters.clusterPoints[i][j][2].toInt() != maxIdx) {
+          errors++;
+        }
+      }
+    }
+    expect(errors, lessThanOrEqualTo(errors));
   });
 }
