@@ -43,26 +43,8 @@ class Clusters {
     return _clusterPoints;
   }
 
+  // Cached result of [clusterPoints].
   List<List<List<double>>> _clusterPoints;
-
-  /// For each element of `samples` returns the index of the nearest cluster
-  /// center as its index in [means].
-  List<int> predict(List<List<double>> samples) {
-    final List<int> predictions = List<int>.filled(samples.length, -1);
-    for (int i = 0; i < samples.length; i++) {
-      double minDist = double.maxFinite;
-      int minK = -1;
-      for (int j = 0; j < means.length; j++) {
-        final double dist = _distSquared(samples[i], means[j], ignoredDims);
-        if (dist < minDist) {
-          minDist = dist;
-          minK = j;
-        }
-      }
-      predictions[i] = minK;
-    }
-    return predictions;
-  }
 
   /// Sum of squared distances of samples to their closest cluster center.
   double get inertia {
@@ -252,6 +234,66 @@ class Clusters {
   // Caches the [silhouette] value.
   double _silhouette;
 
+  /// Returns the index of the mean that is closest to `point`.
+  int nearestMean(List<double> point) {
+    double minDist = double.maxFinite;
+    int minK = -1;
+    for (int j = 0; j < means.length; j++) {
+      final double dist = _distSquared(point, means[j], ignoredDims);
+      if (dist < minDist) {
+        minDist = dist;
+        minK = j;
+      }
+    }
+    return minK;
+  }
+
+  /// Predict the cluster that `point` belongs to by way of a vote among its
+  /// `k` nearest neighbors.
+  ///
+  /// This can be an expensive calculation, as it calculates the distnace to
+  /// every point in every cluster in order to find the nearest `k`.
+  ///
+  /// https://en.wikipedia.org/wiki/K-nearest_neighbors_algorithm
+  int kNearestNeighbors(List<double> point, int k) {
+    final List<MapEntry<double, int>> neighbors =
+        List<MapEntry<double, int>>.generate(
+      k,
+      (int idx) {
+        return const MapEntry<double, int>(double.maxFinite, -1);
+      },
+    );
+
+    for (int i = 0; i < points.length; i++) {
+      final double dist = _distSquared(point, points[i], ignoredDims);
+      if (dist < neighbors[k - 1].key) {
+        neighbors.add(MapEntry<double, int>(dist, clusters[i]));
+        neighbors.sort((MapEntry<double, int> a, MapEntry<double, int> b) {
+          return a.key.compareTo(b.key);
+        });
+        neighbors.removeLast();
+      }
+    }
+
+    // Add 1/d for each point at distance d to the accumulator for its cluster.
+    final List<double> neighborCounts = List<double>.filled(means.length, 0.0);
+    for (int i = 0; i < k; i++) {
+      neighborCounts[neighbors[i].value] += 1.0 / neighbors[i].key;
+    }
+
+    // Find the cluster with the largest value.
+    double maxCount = 0.0;
+    int maxIdx = -1;
+    for (int i = 0; i < neighborCounts.length; i++) {
+      if (neighborCounts[i] > maxCount) {
+        maxCount = neighborCounts[i];
+        maxIdx = i;
+      }
+    }
+
+    return maxIdx;
+  }
+
   @override
   String toString() {
     final StringBuffer buf = StringBuffer();
@@ -379,10 +421,12 @@ class KMeansInitializers {
 /// the euclidan distance.
 class KMeans {
   /// [points] gives the list of points to cluster. [ignoreDims] gives a list
-  /// of dimensions of [points] to ignore.
+  /// of dimensions of [points] to ignore. [labelDim] gives the index of a
+  /// label in each point if there is one.
   KMeans(
     this.points, {
     this.ignoredDims = _emptyList,
+    this.labelDim = -1,
   }) {
     // Translate points so that the range in each dimension is centered at 0,
     // and scale each point so that the range in each dimension is the same
@@ -409,6 +453,9 @@ class KMeans {
     });
     double maxRange = -double.maxFinite;
     for (int i = 0; i < dims; i++) {
+      if (i == labelDim) {
+        continue;
+      }
       if (ranges[i] > maxRange) {
         maxRange = ranges[i];
       }
@@ -417,7 +464,7 @@ class KMeans {
     _scales = List<double>.filled(dims, 0.0);
     for (int i = 0; i < dims; i++) {
       _translations[i] = mins[i] + ranges[i] / 2.0;
-      _scales[i] = maxRange / ranges[i];
+      _scales[i] = i == labelDim ? maxRange * 10.0 : maxRange / ranges[i];
     }
     for (int i = 0; i < points.length; i++) {
       for (int j = 0; j < dims; j++) {
@@ -435,6 +482,9 @@ class KMeans {
 
   /// Dimensions of [points] that are ignored.
   final List<int> ignoredDims;
+
+  /// The index of the label. Defaults to `-1` if the data is unlabeled.
+  final int labelDim;
 
   // The translation to apply to each dimension.
   List<double> _translations;

@@ -39,14 +39,14 @@ void main() {
         (k.inertia - 0.04).abs(), lessThanOrEqualTo(KMeans.defaultPrecision));
 
     expect(
-        k.predict(<List<double>>[
+        <List<double>>[
           <double>[k.means[0][0] + 0.05]
-        ]),
+        ].map(k.nearestMean),
         equals(<int>[0]));
     expect(
-        k.predict(<List<double>>[
+        <List<double>>[
           <double>[k.means[1][0] + 0.05]
-        ]),
+        ].map(k.nearestMean),
         equals(<int>[1]));
   });
 
@@ -85,11 +85,11 @@ void main() {
         (k.inertia - 0.06).abs(), lessThanOrEqualTo(KMeans.defaultPrecision));
 
     expect(
-      k.predict(<List<double>>[
+      <List<double>>[
         <double>[k.means[0][0] + 0.05],
         <double>[k.means[1][0] + 0.05],
         <double>[k.means[2][0] + 0.05],
-      ]),
+      ].map(k.nearestMean),
       equals(<int>[0, 1, 2]),
     );
   });

@@ -35,10 +35,16 @@ class ArffReader {
       }
       final List<String> sampleStrings = line.split(',');
       final List<double> sampleNumbers = sampleStrings.map((String d) {
-        return double.tryParse(d);
+        return double.tryParse(d) ?? _stringTableIndex(d).toDouble();
       }).toList();
       dataList.add(sampleNumbers);
     }
     _data = dataList;
+  }
+
+  final Map<String, int> _stringTable = <String, int>{};
+  int _stringTableIndex(String s) {
+    final int length = _stringTable.length;
+    return _stringTable.putIfAbsent(s, () => length);
   }
 }
