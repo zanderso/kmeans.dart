@@ -1,3 +1,10 @@
+## 0.3.0
+
+- Adds an example
+- Renames `Clusters.predict` to `Clusters.nearestMean`.
+- Adds `Clusters.kNearestNeighbors`.
+- Adds named argument `labelDim` to the constructor of `KMeans`.
+
 ## 0.2.1
 
 - Updates to `README.md`.
