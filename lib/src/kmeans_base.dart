@@ -9,7 +9,7 @@ class Clusters {
   Clusters(this.points, this.ignoredDims, this.clusters, this.means);
 
   /// The list of all points in the clusters.
-  final List<List<double>> points;
+  final List<List<double>>? points;
 
   /// Dimensions of [points] that are ignored.
   final List<int> ignoredDims;
@@ -29,7 +29,7 @@ class Clusters {
   ///
   /// `clusterPoints[i]` gives the list of points belonging to the cluster with
   /// mean `means[i]`.
-  List<List<List<double>>> get clusterPoints {
+  List<List<List<double>>>? get clusterPoints {
     if (_clusterPoints != null) {
       return _clusterPoints;
     }
@@ -37,28 +37,28 @@ class Clusters {
       means.length,
       (int i) => <List<double>>[],
     );
-    for (int i = 0; i < points.length; i++) {
-      _clusterPoints[clusters[i]].add(points[i]);
+    for (int i = 0; i < points!.length; i++) {
+      _clusterPoints![clusters[i]].add(points![i]);
     }
     return _clusterPoints;
   }
 
   // Cached result of [clusterPoints].
-  List<List<List<double>>> _clusterPoints;
+  List<List<List<double>>>? _clusterPoints;
 
   /// Sum of squared distances of samples to their closest cluster center.
-  double get inertia {
+  double? get inertia {
     if (_inertia != null) {
       return _inertia;
     }
     double sum = 0.0;
-    for (int i = 0; i < points.length; i++) {
-      sum += _distSquared(points[i], means[clusters[i]], ignoredDims);
+    for (int i = 0; i < points!.length; i++) {
+      sum += _distSquared(points![i], means[clusters[i]], ignoredDims);
     }
     return sum;
   }
 
-  double _inertia;
+  double? _inertia;
 
   /// Computes the average 'silhouette' over all points.
   ///
@@ -66,7 +66,7 @@ class Clusters {
   ///
   /// This uses an exact computation of the silhouette of each point as defined
   /// in https://en.wikipedia.org/wiki/Silhouette_(clustering).
-  double get exactSilhouette {
+  double? get exactSilhouette {
     if (_exactSilhouette != null) {
       return _exactSilhouette;
     }
@@ -76,17 +76,17 @@ class Clusters {
     final List<List<double>> meanClusterDist = List<List<double>>.generate(
       means.length,
       (int i) {
-        return List<double>.filled(points.length, 0.0);
+        return List<double>.filled(points!.length, 0.0);
       },
     );
     for (int k = 0; k < means.length; k++) {
-      for (int i = 0; i < points.length; i++) {
+      for (int i = 0; i < points!.length; i++) {
         double distSum = 0.0;
-        for (int j = 0; j < clusterPoints[k].length; j++) {
-          distSum += _distSquared(points[i], clusterPoints[k][j], ignoredDims);
+        for (int j = 0; j < clusterPoints![k].length; j++) {
+          distSum += _distSquared(points![i], clusterPoints![k][j], ignoredDims);
         }
-        meanClusterDist[k][i] = clusterPoints[k].length > 1
-            ? distSum / (clusterPoints[k].length - 1).toDouble()
+        meanClusterDist[k][i] = clusterPoints![k].length > 1
+            ? distSum / (clusterPoints![k].length - 1).toDouble()
             : distSum;
       }
     }
@@ -94,10 +94,10 @@ class Clusters {
     // For each point find the minimum mean squared distance to a neighbor
     // cluster.
     final List<double> minNeighborDist = List<double>.filled(
-      points.length,
+      points!.length,
       0.0,
     );
-    for (int i = 0; i < points.length; i++) {
+    for (int i = 0; i < points!.length; i++) {
       double min = double.maxFinite;
       for (int j = 0; j < means.length; j++) {
         if (j != clusters[i] && meanClusterDist[j][i] < min) {
@@ -108,10 +108,10 @@ class Clusters {
     }
 
     // Find the 'silhouette' of each point.
-    final List<double> silhouettes = List<double>.filled(points.length, 0.0);
-    for (int i = 0; i < points.length; i++) {
+    final List<double> silhouettes = List<double>.filled(points!.length, 0.0);
+    for (int i = 0; i < points!.length; i++) {
       final int c = clusters[i];
-      silhouettes[i] = clusterPoints[c].length > 1
+      silhouettes[i] = clusterPoints![c].length > 1
           ? (minNeighborDist[i] - meanClusterDist[c][i]) /
               max(minNeighborDist[i], meanClusterDist[c][i])
           : 0.0;
@@ -119,14 +119,14 @@ class Clusters {
 
     // Return the average silhouette.
     double silhouetteSum = 0.0;
-    for (int i = 0; i < points.length; i++) {
+    for (int i = 0; i < points!.length; i++) {
       silhouetteSum += silhouettes[i];
     }
-    return _exactSilhouette = silhouetteSum / points.length.toDouble();
+    return _exactSilhouette = silhouetteSum / points!.length.toDouble();
   }
 
   // Caches the [exactSilhouette] value.
-  double _exactSilhouette;
+  double? _exactSilhouette;
 
   /// Computes an approximation of the average 'silhouette' over all points.
   ///
@@ -138,7 +138,7 @@ class Clusters {
   /// most 100 points in a cluster.
   ///
   /// See: https://en.wikipedia.org/wiki/Silhouette_(clustering).
-  double get silhouette {
+  double? get silhouette {
     if (_silhouette != null) {
       return _silhouette;
     }
@@ -147,17 +147,17 @@ class Clusters {
     // For each point find the mean distance over all points in the nearest
     // neighbor cluster.
     final List<double> minNeighborDist = List<double>.filled(
-      points.length,
+      points!.length,
       0.0,
     );
-    for (int i = 0; i < points.length; i++) {
+    for (int i = 0; i < points!.length; i++) {
       double minDist = double.maxFinite;
       int minNeighborK = -1;
       for (int k = 0; k < means.length; k++) {
         if (clusters[i] == k) {
           continue;
         }
-        final double d = _distSquared(points[i], means[k], ignoredDims);
+        final double d = _distSquared(points![i], means[k], ignoredDims);
         if (d < minDist) {
           minDist = d;
           minNeighborK = k;
@@ -165,12 +165,12 @@ class Clusters {
       }
       // If the size of the cluster is over some threshold, then
       // sample the points isntead of summing all of them.
-      final List<List<double>> cluster = clusterPoints[minNeighborK];
+      final List<List<double>> cluster = clusterPoints![minNeighborK];
       final int neighborSize = cluster.length;
       if (neighborSize <= 100) {
         double sum = 0.0;
         for (int j = 0; j < cluster.length; j++) {
-          sum += _distSquared(points[i], cluster[j], ignoredDims);
+          sum += _distSquared(points![i], cluster[j], ignoredDims);
         }
         minNeighborDist[i] = sum / cluster.length.toDouble();
       } else {
@@ -178,7 +178,7 @@ class Clusters {
         double sum = 0.0;
         for (int j = 0; j < 100; j++) {
           final int sample = rng.nextInt(neighborSize);
-          sum += _distSquared(points[i], cluster[sample], ignoredDims);
+          sum += _distSquared(points![i], cluster[sample], ignoredDims);
         }
         minNeighborDist[i] = sum / 100.0;
       }
@@ -187,37 +187,37 @@ class Clusters {
     // For each point find the mean distance over all points in the same
     // cluster.
     final List<double> meanClusterDist = List<double>.filled(
-      points.length,
+      points!.length,
       0.0,
     );
-    for (int i = 0; i < points.length; i++) {
+    for (int i = 0; i < points!.length; i++) {
       // If the size of the cluster is over some threshold, then
       // sample the points isntead of summing all of them.
       final int k = clusters[i];
-      final int clusterSize = clusterPoints[k].length;
+      final int clusterSize = clusterPoints![k].length;
       if (clusterSize <= 100) {
         double sum = 0.0;
-        for (int j = 0; j < clusterPoints[k].length; j++) {
-          sum += _distSquared(points[i], clusterPoints[k][j], ignoredDims);
+        for (int j = 0; j < clusterPoints![k].length; j++) {
+          sum += _distSquared(points![i], clusterPoints![k][j], ignoredDims);
         }
-        meanClusterDist[i] = clusterPoints[k].length > 1
-            ? sum / (clusterPoints[k].length - 1).toDouble()
+        meanClusterDist[i] = clusterPoints![k].length > 1
+            ? sum / (clusterPoints![k].length - 1).toDouble()
             : sum;
       } else {
         double sum = 0.0;
         for (int j = 0; j < 100; j++) {
           final int sample = rng.nextInt(clusterSize);
-          sum += _distSquared(points[i], clusterPoints[k][sample], ignoredDims);
+          sum += _distSquared(points![i], clusterPoints![k][sample], ignoredDims);
         }
         meanClusterDist[i] = sum / 100;
       }
     }
 
     // Find the 'silhouette' of each point.
-    final List<double> silhouettes = List<double>.filled(points.length, 0.0);
-    for (int i = 0; i < points.length; i++) {
+    final List<double> silhouettes = List<double>.filled(points!.length, 0.0);
+    for (int i = 0; i < points!.length; i++) {
       final int c = clusters[i];
-      silhouettes[i] = clusterPoints[c].length > 1
+      silhouettes[i] = clusterPoints![c].length > 1
           ? (minNeighborDist[i] - meanClusterDist[i]) /
               max(minNeighborDist[i], meanClusterDist[i])
           : 0.0;
@@ -225,14 +225,14 @@ class Clusters {
 
     // Return the average silhouette.
     double silhouetteSum = 0.0;
-    for (int i = 0; i < points.length; i++) {
+    for (int i = 0; i < points!.length; i++) {
       silhouetteSum += silhouettes[i];
     }
-    return _silhouette = silhouetteSum / points.length.toDouble();
+    return _silhouette = silhouetteSum / points!.length.toDouble();
   }
 
   // Caches the [silhouette] value.
-  double _silhouette;
+  double? _silhouette;
 
   /// Returns the index of the mean that is closest to `point`.
   int nearestMean(List<double> point) {
@@ -264,8 +264,8 @@ class Clusters {
       },
     );
 
-    for (int i = 0; i < points.length; i++) {
-      final double dist = _distSquared(point, points[i], ignoredDims);
+    for (int i = 0; i < points!.length; i++) {
+      final double dist = _distSquared(point, points![i], ignoredDims);
       if (dist < neighbors[k - 1].key) {
         neighbors.add(MapEntry<double, int>(dist, clusters[i]));
         neighbors.sort((MapEntry<double, int> a, MapEntry<double, int> b) {
@@ -308,8 +308,8 @@ class Clusters {
     buf.writeln('Exact Silhouette: $exactSilhouette');
     buf.writeln('');
     buf.writeln('Points');
-    for (int i = 0; i < points.length; i++) {
-      buf.writeln('${points[i]} -> ${clusters[i]}');
+    for (int i = 0; i < points!.length; i++) {
+      buf.writeln('${points![i]} -> ${clusters[i]}');
     }
     return buf.toString();
   }
@@ -318,7 +318,7 @@ class Clusters {
 /// The type of the function used by the k-means algorithm to select the
 /// initial set of cluster centers.
 typedef KMeansInitializer = List<List<double>> Function(
-  List<List<double>> points,
+  List<List<double>>? points,
   List<int> ignoreDims,
   int k,
   int seed,
@@ -332,13 +332,13 @@ class KMeansInitializers {
   /// algorithm:
   /// https://en.wikipedia.org/wiki/K-means%2B%2B
   static List<List<double>> kMeansPlusPlus(
-    List<List<double>> points,
+    List<List<double>>? points,
     List<int> ignoredDims,
     int k,
     int seed,
   ) {
     final Random rng = Random(seed);
-    final int dim = points[0].length;
+    final int dim = points![0].length;
     final List<List<double>> means = List<List<double>>.generate(k, (int i) {
       return List<double>.filled(dim, 0.0);
     });
@@ -402,7 +402,7 @@ class KMeansInitializers {
 
   /// Returns a cluster initializer function that simply returns `means`.
   static KMeansInitializer fromArray(List<List<double>> means) {
-    return (List<List<double>> points, List<int> ignoreDims, int k, int seed) {
+    return (List<List<double>>? points, List<int> ignoreDims, int k, int seed) {
       return means;
     };
   }
@@ -431,20 +431,20 @@ class KMeans {
     // Translate points so that the range in each dimension is centered at 0,
     // and scale each point so that the range in each dimension is the same
     // as the largest range of a dimension in [points].
-    final int dims = points[0].length;
-    _scaledPoints = List<List<double>>.generate(points.length, (int i) {
+    final int dims = points![0].length;
+    _scaledPoints = List<List<double>>.generate(points!.length, (int i) {
       return List<double>.filled(dims, 0.0);
     });
     // Find the largest range in each dimension.
     final List<double> mins = List<double>.filled(dims, double.maxFinite);
     final List<double> maxs = List<double>.filled(dims, -double.maxFinite);
-    for (int i = 0; i < points.length; i++) {
+    for (int i = 0; i < points!.length; i++) {
       for (int j = 0; j < dims; j++) {
-        if (points[i][j] < mins[j]) {
-          mins[j] = points[i][j];
+        if (points![i][j] < mins[j]) {
+          mins[j] = points![i][j];
         }
-        if (points[i][j] > maxs[j]) {
-          maxs[j] = points[i][j];
+        if (points![i][j] > maxs[j]) {
+          maxs[j] = points![i][j];
         }
       }
     }
@@ -466,9 +466,9 @@ class KMeans {
       _translations[i] = mins[i] + ranges[i] / 2.0;
       _scales[i] = i == labelDim ? maxRange * 10.0 : maxRange / ranges[i];
     }
-    for (int i = 0; i < points.length; i++) {
+    for (int i = 0; i < points!.length; i++) {
       for (int j = 0; j < dims; j++) {
-        _scaledPoints[i][j] = (points[i][j] - _translations[j]) * _scales[j];
+        _scaledPoints![i][j] = (points![i][j] - _translations[j]) * _scales[j];
       }
     }
   }
@@ -478,7 +478,7 @@ class KMeans {
   static const List<int> _emptyList = <int>[];
 
   /// The points to cluster.
-  final List<List<double>> points;
+  final List<List<double>>? points;
 
   /// Dimensions of [points] that are ignored.
   final List<int> ignoredDims;
@@ -487,13 +487,13 @@ class KMeans {
   final int labelDim;
 
   // The translation to apply to each dimension.
-  List<double> _translations;
+  late List<double> _translations;
 
   // The scaling to apply in each dimension.
-  List<double> _scales;
+  late List<double> _scales;
 
   // The points after translating and scaling.
-  List<List<double>> _scaledPoints;
+  List<List<double>>? _scaledPoints;
 
   /// Returns a [Cluster] of [points] into [k] clusters.
   Clusters fit(
@@ -503,7 +503,7 @@ class KMeans {
     KMeansInitializer init = KMeansInitializers.kMeansPlusPlus,
     double tolerance = defaultPrecision,
   }) {
-    final List<int> clusters = List<int>.filled(_scaledPoints.length, 0);
+    final List<int> clusters = List<int>.filled(_scaledPoints!.length, 0);
     final List<List<double>> means = init(_scaledPoints, ignoredDims, k, seed);
 
     for (int iters = 0; iters < maxIterations; iters++) {
@@ -535,21 +535,21 @@ class KMeans {
   ///
   /// Returns the clustering whose 'k' maximmizes the average 'silhouette'
   /// (https://en.wikipedia.org/wiki/Silhouette_(clustering)).
-  Clusters bestFit({
+  Clusters? bestFit({
     int maxIterations = 300,
     int seed = 42,
     int minK = 2,
     int maxK = 20,
-    int trialsPerK = 1,
+    int? trialsPerK = 1,
     KMeansInitializer init = KMeansInitializers.kMeansPlusPlus,
     double tolerance = defaultPrecision,
     bool useExactSilhouette = false,
   }) {
-    Clusters best;
+    Clusters? best;
     int k = minK;
     int trial = 0;
 
-    while (k <= maxK && k <= _scaledPoints.length) {
+    while (k <= maxK && k <= _scaledPoints!.length) {
       final Clusters km = fit(
         k,
         maxIterations: maxIterations,
@@ -558,11 +558,11 @@ class KMeans {
         tolerance: tolerance,
       );
       if (useExactSilhouette) {
-        if (best == null || km.exactSilhouette > best.exactSilhouette) {
+        if (best == null || km.exactSilhouette! > best.exactSilhouette!) {
           best = km;
         }
       } else {
-        if (best == null || km.silhouette > best.silhouette) {
+        if (best == null || km.silhouette! > best.silhouette!) {
           best = km;
         }
       }
@@ -578,12 +578,12 @@ class KMeans {
 
   // Put points into the closest cluster.
   void _populateClusters(List<List<double>> means, List<int> outClusters) {
-    for (int i = 0; i < _scaledPoints.length; i++) {
+    for (int i = 0; i < _scaledPoints!.length; i++) {
       int kidx = 0;
-      double kdist = _distSquared(_scaledPoints[i], means[0], ignoredDims);
+      double kdist = _distSquared(_scaledPoints![i], means[0], ignoredDims);
       for (int j = 1; j < means.length; j++) {
         final double dist =
-            _distSquared(_scaledPoints[i], means[j], ignoredDims);
+            _distSquared(_scaledPoints![i], means[j], ignoredDims);
         if (dist < kdist) {
           kidx = j;
           kdist = dist;
@@ -604,7 +604,7 @@ class KMeans {
     for (int i = 0; i < means.length; i++) {
       final List<double> newMean = List<double>.filled(dim, 0.0);
       double n = 0.0;
-      for (int j = 0; j < _scaledPoints.length; j++) {
+      for (int j = 0; j < _scaledPoints!.length; j++) {
         // TODO(zra): Only iterate over the points in the right cluster.
         if (clusters[j] != i) {
           continue;
@@ -613,7 +613,7 @@ class KMeans {
           if (ignoredDims.contains(m)) {
             continue;
           }
-          newMean[m] = (newMean[m] * n + _scaledPoints[j][m]) / (n + 1.0);
+          newMean[m] = (newMean[m] * n + _scaledPoints![j][m]) / (n + 1.0);
         }
         n += 1.0;
       }

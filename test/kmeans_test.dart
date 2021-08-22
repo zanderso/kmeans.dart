@@ -32,11 +32,11 @@ void main() {
     expect(k.clusters[3] == k.clusters[4], isTrue);
     expect(k.clusters[4] == k.clusters[5], isTrue);
 
-    expect(k.clusterPoints[0].length, equals(3));
-    expect(k.clusterPoints[1].length, equals(3));
+    expect(k.clusterPoints![0].length, equals(3));
+    expect(k.clusterPoints![1].length, equals(3));
 
     expect(
-        (k.inertia - 0.04).abs(), lessThanOrEqualTo(KMeans.defaultPrecision));
+        (k.inertia! - 0.04).abs(), lessThanOrEqualTo(KMeans.defaultPrecision));
 
     expect(
         <List<double>>[
@@ -63,7 +63,7 @@ void main() {
       <double>[3.1],
     ];
     final KMeans kmeans = KMeans(points);
-    final Clusters k = kmeans.bestFit();
+    final Clusters k = kmeans.bestFit()!;
 
     expect(k.k, equals(3));
     expect(k.means.length, equals(3));
@@ -77,12 +77,12 @@ void main() {
     expect(k.clusters[5] != k.clusters[6], isTrue);
     expect(k.clusters[6] == k.clusters[7], isTrue);
     expect(k.clusters[7] == k.clusters[8], isTrue);
-    expect(k.clusterPoints[0].length, equals(3));
-    expect(k.clusterPoints[1].length, equals(3));
-    expect(k.clusterPoints[2].length, equals(3));
+    expect(k.clusterPoints![0].length, equals(3));
+    expect(k.clusterPoints![1].length, equals(3));
+    expect(k.clusterPoints![2].length, equals(3));
 
     expect(
-        (k.inertia - 0.06).abs(), lessThanOrEqualTo(KMeans.defaultPrecision));
+        (k.inertia! - 0.06).abs(), lessThanOrEqualTo(KMeans.defaultPrecision));
 
     expect(
       <List<double>>[
@@ -158,7 +158,7 @@ void main() {
       final Clusters k = kmeans.bestFit(
         minK: minK,
         maxK: maxK,
-      );
+      )!;
 
       // We found the right k.
       expect(k.k, equals(clusters));
@@ -184,7 +184,7 @@ void main() {
       final KMeans kmeans = KMeans(points);
       for (int i = minK; i <= maxK; i++) {
         final Clusters c = kmeans.fit(i);
-        expect((c.silhouette - c.exactSilhouette).abs(), lessThan(0.02));
+        expect((c.silhouette! - c.exactSilhouette!).abs(), lessThan(0.02));
       }
     }
   });
@@ -218,7 +218,7 @@ void main() {
 }
 
 void test2DArff(
-    {String fileName, int k, int errors, int minK, int maxK, int trials}) {
+    {String? fileName, int? k, int? errors, int? minK, int? maxK, int? trials}) {
   test('$fileName with labels', () async {
     final ArffReader reader =
         ArffReader.fromFile(File('test/data/$fileName.arff'));
@@ -227,25 +227,25 @@ void test2DArff(
     // The third dimension is the label. Exagerate it to test that bestFit is
     // finding the right number of clusters and getting all the right points
     // into those clusters.
-    for (int i = 0; i < reader.data.length; i++) {
-      reader.data[i][2] *= 1e6;
+    for (int i = 0; i < reader.data!.length; i++) {
+      reader.data![i][2] *= 1e6;
     }
 
     final KMeans kmeans = KMeans(reader.data, ignoredDims: <int>[]);
     final Clusters clusters = kmeans.bestFit(
-      minK: minK,
-      maxK: maxK,
+      minK: minK!,
+      maxK: maxK!,
       trialsPerK: trials,
-    );
+    )!;
 
     expect(clusters.k, equals(k));
 
     // The third dimension of each point gives the actual cluster. Check that
     // all points we clustered together should really be together.
-    for (int i = 0; i < clusters.clusterPoints.length; i++) {
-      final double c = clusters.clusterPoints[i][0][2];
-      for (int j = 0; j < clusters.clusterPoints[i].length; j++) {
-        expect(clusters.clusterPoints[i][j][2], equals(c));
+    for (int i = 0; i < clusters.clusterPoints!.length; i++) {
+      final double c = clusters.clusterPoints![i][0][2];
+      for (int j = 0; j < clusters.clusterPoints![i].length; j++) {
+        expect(clusters.clusterPoints![i][j][2], equals(c));
       }
     }
   });
@@ -259,19 +259,19 @@ void test2DArff(
     // leave off now, and then check later.
     final KMeans kmeans = KMeans(reader.data, ignoredDims: <int>[2]);
     final Clusters clusters = kmeans.bestFit(
-      minK: minK,
-      maxK: maxK,
+      minK: minK!,
+      maxK: maxK!,
       trialsPerK: trials,
-    );
+    )!;
 
     expect(clusters.k, equals(k));
 
     // May get a few wrong.
     int errors = 0;
-    for (int i = 0; i < clusters.clusterPoints.length; i++) {
+    for (int i = 0; i < clusters.clusterPoints!.length; i++) {
       final List<int> counts = List<int>.filled(clusters.k + 1, 0);
-      for (int j = 0; j < clusters.clusterPoints[i].length; j++) {
-        counts[clusters.clusterPoints[i][j][2].toInt()]++;
+      for (int j = 0; j < clusters.clusterPoints![i].length; j++) {
+        counts[clusters.clusterPoints![i][j][2].toInt()]++;
       }
       int maxIdx = -1;
       int maxCount = 0;
@@ -282,8 +282,8 @@ void test2DArff(
         }
       }
       // If a point isn't in the maxIdx cluster, consider it an error.
-      for (int j = 0; j < clusters.clusterPoints[i].length; j++) {
-        if (clusters.clusterPoints[i][j][2].toInt() != maxIdx) {
+      for (int j = 0; j < clusters.clusterPoints![i].length; j++) {
+        if (clusters.clusterPoints![i][j][2].toInt() != maxIdx) {
           errors++;
         }
       }

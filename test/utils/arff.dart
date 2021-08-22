@@ -12,8 +12,8 @@ class ArffReader {
 
   final Stream<List<int>> _dataStream;
 
-  List<List<double>> get data => _data;
-  List<List<double>> _data;
+  List<List<double>>? get data => _data;
+  List<List<double>>? _data;
 
   Future<void> parse() async {
     final List<List<double>> dataList = <List<double>>[];

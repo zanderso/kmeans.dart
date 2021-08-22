@@ -14,23 +14,23 @@ Future<void> main() async {
   await reader.parse();
 
   const int labelIndex = 16;
-  final int trainingSetSize = reader.data.length ~/ 2;
+  final int trainingSetSize = reader.data!.length ~/ 2;
 
   // Train on the first half of the data.
   final List<List<double>> trainingData =
-      reader.data.sublist(0, trainingSetSize);
+      reader.data!.sublist(0, trainingSetSize);
   final KMeans trainingKMeans = KMeans(trainingData, labelDim: labelIndex);
   final Clusters trainingClusters = trainingKMeans.bestFit(
     minK: 26,
     maxK: 26,
-  );
+  )!;
 
   int trainingErrors = 0;
-  for (int i = 0; i < trainingClusters.clusterPoints.length; i++) {
+  for (int i = 0; i < trainingClusters.clusterPoints!.length; i++) {
     // Count the occurrences of each label.
     final List<int> counts = List<int>.filled(trainingClusters.k, 0);
-    for (int j = 0; j < trainingClusters.clusterPoints[i].length; j++) {
-      counts[trainingClusters.clusterPoints[i][j][labelIndex].toInt()]++;
+    for (int j = 0; j < trainingClusters.clusterPoints![i].length; j++) {
+      counts[trainingClusters.clusterPoints![i][j][labelIndex].toInt()]++;
     }
 
     // Find the most frequent label.
@@ -44,8 +44,8 @@ Future<void> main() async {
     }
 
     // If a point isn't in the most frequent cluster, consider it an error.
-    for (int j = 0; j < trainingClusters.clusterPoints[i].length; j++) {
-      if (trainingClusters.clusterPoints[i][j][labelIndex].toInt() != maxIdx) {
+    for (int j = 0; j < trainingClusters.clusterPoints![i].length; j++) {
+      if (trainingClusters.clusterPoints![i][j][labelIndex].toInt() != maxIdx) {
         trainingErrors++;
       }
     }
@@ -62,7 +62,7 @@ Future<void> main() async {
   );
 
   // Find the predicted cluster for the other half of the data.
-  final List<List<double>> data = reader.data.sublist(trainingSetSize);
+  final List<List<double>> data = reader.data!.sublist(trainingSetSize);
   final List<int> predictions = data.map((List<double> point) {
     return ignoreLabel.kNearestNeighbors(point, 5);
   }).toList();
@@ -71,7 +71,7 @@ Future<void> main() async {
   // label.
   int errors = 0;
   for (int i = 0; i < predictions.length; i++) {
-    final List<double> rep = ignoreLabel.clusterPoints[predictions[i]][0];
+    final List<double> rep = ignoreLabel.clusterPoints![predictions[i]][0];
     final int repClass = rep[labelIndex].toInt();
     final int dataClass = data[i][labelIndex].toInt();
     if (dataClass != repClass) {
@@ -80,7 +80,7 @@ Future<void> main() async {
   }
 
   // Hopefully these are small.
-  final int testSetSize = reader.data.length - trainingSetSize;
+  final int testSetSize = reader.data!.length - trainingSetSize;
   final double errorRate = errors.toDouble() / testSetSize.toDouble();
   print('classification errors: $errors / $testSetSize');
   print('error rate: $errorRate');
