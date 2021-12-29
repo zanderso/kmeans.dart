@@ -1,3 +1,7 @@
+## 1.0.0
+
+- Migrate to null-safety
+
 ## 0.3.0
 
 - Adds an example
