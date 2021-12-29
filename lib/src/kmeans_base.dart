@@ -29,36 +29,25 @@ class Clusters {
   ///
   /// `clusterPoints[i]` gives the list of points belonging to the cluster with
   /// mean `means[i]`.
-  List<List<List<double>>> get clusterPoints {
-    if (_clusterPoints != null) {
-      return _clusterPoints;
-    }
-    _clusterPoints = List<List<List<double>>>.generate(
+  late final List<List<List<double>>> clusterPoints = (() {
+    final List<List<List<double>>> cp = List<List<List<double>>>.generate(
       means.length,
       (int i) => <List<double>>[],
     );
     for (int i = 0; i < points.length; i++) {
-      _clusterPoints[clusters[i]].add(points[i]);
+      cp[clusters[i]].add(points[i]);
     }
-    return _clusterPoints;
-  }
-
-  // Cached result of [clusterPoints].
-  List<List<List<double>>> _clusterPoints;
+    return cp;
+  })();
 
   /// Sum of squared distances of samples to their closest cluster center.
-  double get inertia {
-    if (_inertia != null) {
-      return _inertia;
-    }
+  late final double inertia = (() {
     double sum = 0.0;
     for (int i = 0; i < points.length; i++) {
       sum += _distSquared(points[i], means[clusters[i]], ignoredDims);
     }
     return sum;
-  }
-
-  double _inertia;
+  })();
 
   /// Computes the average 'silhouette' over all points.
   ///
@@ -66,11 +55,7 @@ class Clusters {
   ///
   /// This uses an exact computation of the silhouette of each point as defined
   /// in https://en.wikipedia.org/wiki/Silhouette_(clustering).
-  double get exactSilhouette {
-    if (_exactSilhouette != null) {
-      return _exactSilhouette;
-    }
-
+  late final double exactSilhouette = (() {
     // For each point and each cluster calculate the mean squared distance of
     // the point to each point in the cluster.
     final List<List<double>> meanClusterDist = List<List<double>>.generate(
@@ -122,11 +107,8 @@ class Clusters {
     for (int i = 0; i < points.length; i++) {
       silhouetteSum += silhouettes[i];
     }
-    return _exactSilhouette = silhouetteSum / points.length.toDouble();
-  }
-
-  // Caches the [exactSilhouette] value.
-  double _exactSilhouette;
+    return silhouetteSum / points.length.toDouble();
+  })();
 
   /// Computes an approximation of the average 'silhouette' over all points.
   ///
@@ -138,10 +120,7 @@ class Clusters {
   /// most 100 points in a cluster.
   ///
   /// See: https://en.wikipedia.org/wiki/Silhouette_(clustering).
-  double get silhouette {
-    if (_silhouette != null) {
-      return _silhouette;
-    }
+  late final double silhouette = (() {
     final Random rng = Random(100);
 
     // For each point find the mean distance over all points in the nearest
@@ -228,11 +207,8 @@ class Clusters {
     for (int i = 0; i < points.length; i++) {
       silhouetteSum += silhouettes[i];
     }
-    return _silhouette = silhouetteSum / points.length.toDouble();
-  }
-
-  // Caches the [silhouette] value.
-  double _silhouette;
+    return silhouetteSum / points.length.toDouble();
+  })();
 
   /// Returns the index of the mean that is closest to `point`.
   int nearestMean(List<double> point) {
@@ -487,13 +463,13 @@ class KMeans {
   final int labelDim;
 
   // The translation to apply to each dimension.
-  List<double> _translations;
+  late final List<double> _translations;
 
   // The scaling to apply in each dimension.
-  List<double> _scales;
+  late final List<double> _scales;
 
   // The points after translating and scaling.
-  List<List<double>> _scaledPoints;
+  late final List<List<double>> _scaledPoints;
 
   /// Returns a [Cluster] of [points] into [k] clusters.
   Clusters fit(
@@ -545,7 +521,7 @@ class KMeans {
     double tolerance = defaultPrecision,
     bool useExactSilhouette = false,
   }) {
-    Clusters best;
+    Clusters? best;
     int k = minK;
     int trial = 0;
 
@@ -573,7 +549,7 @@ class KMeans {
       }
     }
 
-    return best;
+    return best!;
   }
 
   // Put points into the closest cluster.

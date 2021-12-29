@@ -217,8 +217,14 @@ void main() {
   );
 }
 
-void test2DArff(
-    {String fileName, int k, int errors, int minK, int maxK, int trials}) {
+void test2DArff({
+  required String fileName,
+  required int k,
+  required int errors,
+  required int minK,
+  required int maxK,
+  required int trials,
+}) {
   test('$fileName with labels', () async {
     final ArffReader reader =
         ArffReader.fromFile(File('test/data/$fileName.arff'));
