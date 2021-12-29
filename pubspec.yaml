@@ -4,7 +4,7 @@
 
 name: kmeans
 description: A Dart library for k-means clustering
-version: 0.4.0
+version: 1.0.0
 homepage: https://www.github.com/zanderso/kmeans.dart
 
 environment:
